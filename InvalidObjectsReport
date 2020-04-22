@@ -1,0 +1,113 @@
+-- Script criado para ser executado no SQL Developer
+
+SELECT
+    "Reason",
+    "Schema",
+    "Type",
+    "Name",
+    "Sequence",
+    "Line",
+    "Position",
+    "Description",
+    "Message",
+    "OracleNativeObject"
+FROM
+    (
+        SELECT
+            de.attribute        "Reason",
+            de.owner            "Schema",
+            de.type             "Type",
+            de.name             "Name",
+            de.sequence         "Sequence",
+            de.line             "Line",
+            de.position         "Position",
+            de.text             "Description",
+            de.message_number   "Message",
+            CASE
+                WHEN de.owner IN (
+                    SELECT
+                        sdo.owner
+                    FROM
+                        dba_objects   sdo,
+                        dba_users     sdu
+                    WHERE
+                        sdo.owner = sdu.username
+                        AND ( ( sdu.account_status <> 'EXPIRED'
+                                AND sdu.default_tablespace IN (
+                            'STATSPACK_DATA',
+                            'SYSAUX',
+                            'SYSTEM'
+                        ) ) )
+                    GROUP BY
+                        sdo.owner
+                ) THEN
+                    'Yes'
+                ELSE
+                    'No'
+            END "OracleNativeObject"
+        FROM
+            dba_errors de
+        UNION ALL
+        SELECT
+            ( CAST(('') AS VARCHAR2(9)) ) "Reason",
+            do.owner         "Schema",
+            do.object_type   "Type",
+            do.object_name   "Name",
+            ( CAST(('') AS NUMBER) ) "Sequence",
+            ( CAST(('') AS NUMBER) ) "Line",
+            ( CAST(('') AS NUMBER) ) "Position",
+            ( CAST(('') AS VARCHAR2(4000)) ) "Description",
+            ( CAST(('') AS NUMBER) ) "Message",
+            CASE
+                WHEN do.owner IN (
+                    SELECT
+                        sdo.owner
+                    FROM
+                        dba_objects   sdo,
+                        dba_users     sdu
+                    WHERE
+                        sdo.owner = sdu.username
+                        AND ( ( sdu.account_status <> 'EXPIRED'
+                                AND sdu.default_tablespace IN (
+                            'STATSPACK_DATA',
+                            'SYSAUX',
+                            'SYSTEM'
+                        ) ) )
+                    GROUP BY
+                        sdo.owner
+                ) THEN
+                    'Yes'
+                ELSE
+                    'No'
+            END "OracleNativeObject"
+        FROM
+            dba_objects do
+        WHERE
+            ( ( instr(do.object_type, 'TYPE') = 0 )
+              AND ( instr(do.object_type, 'OPERATOR') = 0 ) )
+            AND do.status = 'INVALID'
+            AND do.object_type NOT IN (
+                'DIMENSION',
+                'FUNCTION',
+                'JAVA CLASS',
+                'JAVA SOURCE',
+                'LIBRARY',
+                'PACKAGE',
+                'PACKAGE BODY',
+                'PROCEDURE',
+                'TRIGGER',
+                'TYPE',
+                'TYPE BODY',
+                'VIEW'
+            )
+    )
+ORDER BY
+    "Reason" ASC,
+    "Schema" ASC,
+    "Type" ASC,
+    "Name" ASC,
+    "Sequence" ASC,
+    "Line" ASC,
+    "Position" ASC,
+    "Description" ASC,
+    "Message" ASC;
